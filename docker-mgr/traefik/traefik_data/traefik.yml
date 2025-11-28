@@ -2,8 +2,8 @@ log:
   level: INFO
 
 api:
-  insecure: true
   dashboard: true
+  insecure: false
 
 entryPoints:
   web:

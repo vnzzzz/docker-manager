@@ -8,17 +8,22 @@ services:
     build:
       context: ./traefik
     ports:
-      - 80:80
-      # - 443:443
-      - 8080:8080
+      - "80:80"
+      # TLS を使う場合は 443 も開ける
+      # - "443:443"
+      # ダッシュボードは traefik.localhost 経由で出すので 8080 は基本不要
+      # - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik_data/traefik.yml:/etc/traefik/traefik.yml
     networks:
       - web
     labels:
-      - traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)
-      - traefik.http.routers.http-catchall.entrypoints=web
+      - "traefik.enable=true"
+      # Traefik dashboard を http://traefik.localhost で公開
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.routers.traefik.service=api@internal"
 
   portainer:
     container_name: portainer
@@ -32,22 +37,11 @@ services:
     networks:
       - web
     labels:
-      - traefik.enable=true
-
-      # Frontend
-      - traefik.http.routers.frontend.rule=PathPrefix(`/portainer`)
-      - traefik.http.routers.frontend.service=frontend
-      - traefik.http.routers.frontend.entrypoints=web
-      - traefik.http.routers.frontend.middlewares=strip-prefix-portainer
-      - traefik.http.middlewares.strip-prefix-portainer.stripprefix.prefixes=/portainer
-      - traefik.http.services.frontend.loadbalancer.server.port=9000
-
-
-      # Edge
-      - traefik.http.routers.edge.rule=Host(`edge.localhost`)
-      - traefik.http.routers.edge.entrypoints=web
-      - traefik.http.services.edge.loadbalancer.server.port=8000
-      - traefik.http.routers.edge.service=edge
+      - "traefik.enable=true"
+      # Portainer 本体を http://portainer.localhost で公開
+      - "traefik.http.routers.portainer.rule=Host(`portainer.localhost`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
 networks:
   web:
