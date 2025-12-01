@@ -1,5 +1,18 @@
-# portainer
-portainer/portainer_data/*
+# env
+.env
+
+# portainer data
+data/portainer/**
+
+# coredns data
+data/coredns/**
+
+# keycloak data
+data/keycloak/**
+
+# traefik config/data
+data/traefik/**
+!data/traefik/traefik.yml
 
 # gitkeep
 !.gitkeep

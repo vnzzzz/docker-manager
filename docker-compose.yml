@@ -3,8 +3,7 @@ services:
     container_name: traefik
     hostname: traefik
     restart: always
-    build:
-      context: ./traefik
+    image: traefik:latest
     ports:
       - "80:80"
       # TLS を使う場合は 443 も開ける
@@ -13,7 +12,7 @@ services:
       # - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik_data/traefik.yml:/etc/traefik/traefik.yml
+      - ./data/traefik/traefik.yml:/etc/traefik/traefik.yml
     networks:
       - web
     labels:
@@ -27,11 +26,10 @@ services:
     container_name: portainer
     hostname: portainer
     restart: always
-    build:
-      context: ./portainer
+    image: portainer/portainer-ce:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./portainer/portainer_data:/data
+      - ./data/portainer:/data
     networks:
       - web
     labels:
@@ -41,6 +39,53 @@ services:
       - "traefik.http.routers.portainer.entrypoints=web"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
+  coredns:
+    image: coredns/coredns:1.11.1
+    container_name: coredns
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/coredns:/etc/coredns
+    networks:
+      dns:
+        ipv4_address: 172.31.0.10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: keycloak
+    restart: unless-stopped
+    command:
+      - start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      web:
+      dns:
+    volumes:
+      - ./data/keycloak:/opt/keycloak/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`keycloak.localhost`)"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-docker-manager_web}"
+
 networks:
   web:
     driver: bridge
+    name: ${TRAEFIK_NETWORK:-docker-manager_web}
+  dns:
+    driver: bridge
+    name: ${DNS_NETWORK:-docker-manager_dns}
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
