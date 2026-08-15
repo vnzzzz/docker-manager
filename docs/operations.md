@@ -62,14 +62,20 @@ docker compose down
 
 KeycloakとPortainerの永続データを整合した状態で取得するため、backup対象serviceを停止します。shared networkは残します。
 
+bind mount配下にはcontainerがhost userと異なるUIDで作成したfileが含まれる場合があります。Linux Docker Engineでも読み取り権限不足でbackupを欠落させないよう、archive作成は十分な権限で実行し、作成後にarchiveを検証します。
+
 ```bash
 docker compose stop keycloak portainer
 
 backup_dir="../docker-manager-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup_dir"
 
-tar -C data -czf "$backup_dir/runtime-data.tar.gz" keycloak portainer
+sudo tar -C data -czf "$backup_dir/runtime-data.tar.gz" keycloak portainer
+sudo chown "$(id -u):$(id -g)" "$backup_dir/runtime-data.tar.gz"
+tar -tzf "$backup_dir/runtime-data.tar.gz" >/dev/null
 ```
+
+`tar -tzf` がerrorなく完了したことを確認してからbackup完了とします。Portainer単体については、Portainer Admin UIのbuilt-in backupでも`/data`に保存されるconfigurationをbackupできます。
 
 backup後に対象serviceを再開します。
 
@@ -228,8 +234,12 @@ Portainerはhostへ直接port publishしていないため、`http://portainer.l
   - https://docs.docker.com/reference/cli/docker/compose/config/
 - `docker compose down`
   - https://docs.docker.com/reference/cli/docker/compose/down/
+- Docker bind mounts
+  - https://docs.docker.com/engine/storage/bind-mounts/
 - Docker network
   - https://docs.docker.com/reference/cli/docker/network/
+- Portainer backup
+  - https://docs.portainer.io/admin/settings/general
 - Portainer lifecycle policy
   - https://docs.portainer.io/start/lifecycle
 - Keycloak import / export
