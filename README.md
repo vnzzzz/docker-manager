@@ -11,7 +11,7 @@ Local Docker development infrastructure with Traefik, Portainer, CoreDNS and Key
 cp .env.sample .env
 ```
 
-`.env` の `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` を設定して起動します。
+`.env` の `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` を設定して起動します。
 
 ```bash
 docker compose up -d
@@ -20,6 +20,8 @@ docker compose up -d
 - Traefik: `http://traefik.localhost`
 - Portainer: `http://portainer.localhost`
 - Keycloak: `http://keycloak.localhost`
+
+Keycloakの初期設定、health check、永続データのreset / version upgradeは [docs/keycloak.md](docs/keycloak.md) を参照してください。
 
 ## Screenshots
 
@@ -66,6 +68,8 @@ major / minor version を更新する場合は、各製品の release notes / mi
 ├── data
 │   ├── keycloak
 │   └── portainer
+├── docs
+│   └── keycloak.md
 ├── local
 │   └── coredns
 │       └── projects.conf.example
