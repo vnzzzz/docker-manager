@@ -1,110 +1,129 @@
 # docker-manager
 
-Local Docker development infrastructure with Traefik, Portainer, CoreDNS and Keycloak.
+Traefik / Portainer / CoreDNS / Keycloakを、ローカルのDocker開発環境で複数projectから共有するためのinfrastructure stackです。
 
-ローカルのDocker開発環境で共通利用するインフラを管理します。
-ローカル開発専用とし、Traefik / Portainer / Keycloak の管理UIを外部公開用途では使用しません。
+**local development専用**です。管理UIやKeycloak `start-dev`、Docker socket accessを含むため、本番環境や外部公開用途には使用しません。
 
-## Setup
+## Services
+
+| Service | Role | Access | Persistent data |
+| --- | --- | --- | --- |
+| Traefik | reverse proxy / Docker service discovery | `http://traefik.localhost` | なし |
+| Portainer | Docker管理UI | `http://portainer.localhost` | `data/portainer` |
+| CoreDNS | container向けlocal DNS | `172.31.0.10:53` on `dns` network | なし |
+| Keycloak | local authentication / identity provider | `http://keycloak.localhost` | `data/keycloak` |
+
+service構成、image version、port、networkの実値は `docker-compose.yml` を正本とします。
+
+## Prerequisites
+
+- Docker Engine または Docker Desktop
+- Docker Compose plugin (`docker compose`)
+
+利用可能か確認します。
 
 ```bash
+docker version
+docker compose version
+```
+
+## Quick Start
+
+```bash
+git clone https://github.com/vnzzzz/docker-manager.git
+cd docker-manager
 cp .env.sample .env
 ```
 
-`.env` の `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` を設定して起動します。
+`.env` にKeycloakのbootstrap管理者を設定します。
+
+```dotenv
+KC_BOOTSTRAP_ADMIN_USERNAME=admin
+KC_BOOTSTRAP_ADMIN_PASSWORD=<password>
+```
+
+設定を検証して起動します。
 
 ```bash
+docker compose config -q
 docker compose up -d
+docker compose ps
 ```
+
+`keycloak` が `healthy` になったことを確認します。
+
+主要URL:
 
 - Traefik: `http://traefik.localhost`
 - Portainer: `http://portainer.localhost`
 - Keycloak: `http://keycloak.localhost`
 
-Keycloakの初期設定、health check、永続データのreset / version upgradeは [docs/keycloak.md](docs/keycloak.md) を参照してください。
+## Documentation
 
-## Screenshots
-
-### Traefik
-
-![Traefik dashboard](images/traefik-console.png)
-
-### Portainer
-
-![Portainer dashboard](images/portainer-console.png)
-
-Containers から起動中のコンテナを確認できます。
-
-![Portainer containers](images/portainer-container.png)
+- [Architecture](docs/architecture.md) — service / network / configuration / persistent dataの構成
+- [Integration](docs/integration.md) — 他projectからTraefik / CoreDNSを利用するCompose例
+- [Operations](docs/operations.md) — start / stop / backup / reset / update / troubleshooting
+- [Security](docs/security.md) — local-only前提、Keycloak development mode、Docker socketのtrust boundary
+- [Keycloak](docs/keycloak.md) — 初期設定、health check、H2 reset、version upgrade / realm export-import
 
 ## Local DNS
 
-利用プロジェクト固有の名前解決が必要な場合は、local overrideを作成します。
+project固有のlocal nameが必要な場合はoverride fileを作成します。
 
 ```bash
 cp local/coredns/projects.conf.example local/coredns/projects.conf
 ```
 
+例:
+
 ```corefile
 rewrite name example.localhost host.docker.internal
 ```
 
-`local/coredns/*.conf` はGit管理されません。共通設定は `config/coredns/Corefile` を正本とします。
+`local/coredns/*.conf` はGit管理されません。詳細は [Integration](docs/integration.md) を参照してください。
 
-## Image versions
+## Version policy
 
-`docker-compose.yml` では image を patch version まで固定します。Portainer は LTS stream を使用します。
-major / minor version を更新する場合は、各製品の release notes / migration guide を確認してから更新します。
+`docker-compose.yml` ではimageをpatch versionまで固定します。PortainerはLTS streamを使用します。
 
-## Dependency updates
-
-Dependabotは毎週月曜日09:00（Asia/Tokyo）にDocker Compose imageとGitHub Actionsの更新を確認します。
-
-- Docker Compose imageのpatch updateは1つのPRにまとめる
-- Docker Compose imageのminor / major updateは個別PRとし、release notes / migration guideとCIを確認してからmergeする
-- Portainerは現在のLTS minor系列内のpatch updateだけを自動提案対象とし、新しいLTS系列への移行はlifecycleを確認して手動で行う
-- GitHub Actionsのpatch / minor updateはまとめ、major updateは個別PRにする
-
-Dependabot PRも通常のPull Requestと同じCIを実行し、自動mergeは行いません。
+Dependabotは毎週Docker Compose imageとGitHub Actionsの更新を確認します。Docker imageのminor / major updateは個別にrelease notes / migration guideとCIを確認し、自動mergeは行いません。
 
 ## CI
 
-Pull Requestと`main`へのpushでは `.github/workflows/ci.yml` を実行します。
+Pull Requestと`main`へのpushでは `.github/workflows/ci.yml` を実行し、次を検証します。
 
-- `docker compose config -q` によるCompose model検証
-- Traefik / CoreDNSの必須設定ファイル確認
-- stackの起動とTraefik containerのrunning確認
-- Traefik経由のPortainer HTTP応答確認
-- Keycloak health check確認
-- CoreDNSへのDNS query確認
+- `docker compose config -q`
+- stack起動
+- Traefik / Portainer route
+- Keycloak health
+- CoreDNS name resolution
+- failure時のdiagnosticsとcleanup
 
-失敗時は `docker compose ps` と各serviceのlogsを出力してからcleanupします。
-
-## Layout
+## Repository layout
 
 ```text
 .
 ├── .github
 │   ├── dependabot.yml
-│   └── workflows
-│       └── ci.yml
+│   └── workflows/ci.yml
 ├── config
-│   ├── coredns
-│   │   └── Corefile
-│   └── traefik
-│       └── traefik.yml
+│   ├── coredns/Corefile
+│   └── traefik/traefik.yml
 ├── data
-│   ├── keycloak
-│   └── portainer
+│   ├── keycloak/
+│   └── portainer/
 ├── docs
-│   └── keycloak.md
+│   ├── architecture.md
+│   ├── integration.md
+│   ├── keycloak.md
+│   ├── operations.md
+│   └── security.md
 ├── local
-│   └── coredns
-│       └── projects.conf.example
-├── docker-compose.yml
-└── README.md
+│   └── coredns/
+├── .env.sample
+└── docker-compose.yml
 ```
 
 - `config/`: Git管理する共通設定
-- `data/`: Git管理しない永続データ
-- `local/`: Git管理しない利用者・プロジェクト固有設定
+- `data/`: Git管理しない永続runtime data
+- `local/`: Git管理しない利用者・project固有設定
