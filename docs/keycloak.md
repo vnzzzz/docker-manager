@@ -96,7 +96,7 @@ export完了後、codeを更新し、`.env` の管理者変数を `KC_BOOTSTRAP_
 find data/keycloak -mindepth 1 -maxdepth 1 ! -name .gitkeep -exec rm -rf -- {} +
 
 docker compose run --rm --no-deps \
-  --mount type=bind,src="$export_dir",dst=/tmp/export,readonly \
+  -v "$export_dir:/tmp/export:ro" \
   keycloak \
   import --db=dev-file --dir /tmp/export
 
