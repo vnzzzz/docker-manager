@@ -1,69 +1,72 @@
-# docker 管理用セット
+# docker-manager
 
-## 目的
+Local Docker development infrastructure with Traefik, Portainer, CoreDNS and Keycloak.
 
-ローカルの docker 開発環境の管理を簡単にするため、traefik と portainer を導入する。  
-併せて、他プロジェクトから共通で利用する keycloak / coredns もここでホストする。
+ローカルのDocker開発環境で共通利用するインフラを管理します。
 
-## ディレクトリ構成
-
-### 概説
-
-- traefik と portainer は 1 つの docker-compose.yml で準備する（イメージは公式を直接利用）
-- 今後作成する docker プロジェクトは、それぞれ別のプロジェクトディレクトリの中で docker-compose.yml を作成し、その際に label で traefik の管理情報を付記する
-- https 対応は未実施
-
-### 構成
+## Setup
 
 ```bash
-# docker-mgr：portainer+traefik
+cp .env.sample .env
+```
+
+`.env` の `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` を設定して起動します。
+
+```bash
+docker compose up -d
+```
+
+- Traefik: `http://traefik.localhost`
+- Portainer: `http://portainer.localhost`
+- Keycloak: `http://keycloak.localhost`
+
+## Screenshots
+
+### Traefik
+
+![Traefik dashboard](images/traefik-console.png)
+
+### Portainer
+
+![Portainer dashboard](images/portainer-console.png)
+
+Containers から起動中のコンテナを確認できます。
+
+![Portainer containers](images/portainer-container.png)
+
+## Local DNS
+
+利用プロジェクト固有の名前解決が必要な場合は、local overrideを作成します。
+
+```bash
+cp local/coredns/projects.conf.example local/coredns/projects.conf
+```
+
+```corefile
+rewrite name example.localhost host.docker.internal
+```
+
+`local/coredns/*.conf` はGit管理されません。共通設定は `config/coredns/Corefile` を正本とします。
+
+## Layout
+
+```text
 .
-├── README.md
-├── .env
+├── config
+│   ├── coredns
+│   │   └── Corefile
+│   └── traefik
+│       └── traefik.yml
 ├── data
-│   ├── coredns          # Corefile 管理
-│   ├── keycloak         # Keycloak data
-│   ├── portainer        # Portainer data
-│   └── traefik          # Traefik 設定 (traefik.yml)
+│   ├── keycloak
+│   └── portainer
+├── local
+│   └── coredns
+│       └── projects.conf.example
 ├── docker-compose.yml
-└── images               # README 用画像
+└── README.md
 ```
 
-## 手順
-
-1. traefik と portainer を立ち上げる
-
-   プロジェクトルートで下記を実行する
-
-   ```bash
-   docker-compose up -d
-   ```
-
-1. traefik の管理コンソールへのログインを確認する
-
-   `http://traefik.localhost`にブラウザでアクセスする
-
-   ![picture 1](images/traefik-console.png)
-
-1. portainer の管理コンソールへのログインを確認する
-
-   `http://portainer.localhost`にブラウザでアクセスする
-
-   ![picture 2](images/portainer-console.png)
-
-   > 初回は admin ユーザー作成を求められるので、適当な password を入力する
-
-   Containers から、起動中のコンテナ情報が確認できる
-
-   ![picture 3](images/portainer-container.png)
-
-補足：起動しているコンテナの情報は下記で確認できる。
-
-```bash
-docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"
-```
-
-補足：
-
-- `web` ネットワークは traefik 用（名前は `${TRAEFIK_NETWORK}`）で、他プロジェクトは外部ネットワークとして参照する
-- `dns` ネットワークは coredns 用（名前は `${DNS_NETWORK}`）で、`172.31.0.10` に固定された coredns を他プロジェクトが利用する
+- `config/`: Git管理する共通設定
+- `data/`: Git管理しない永続データ
+- `local/`: Git管理しない利用者・プロジェクト固有設定

@@ -12,7 +12,7 @@ services:
       # - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./data/traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
       - web
     labels:
@@ -43,11 +43,12 @@ services:
     image: coredns/coredns:1.11.1
     container_name: coredns
     restart: unless-stopped
-    command: -conf /etc/coredns/Corefile
+    command: -conf /Corefile
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./data/coredns:/etc/coredns
+      - ./config/coredns/Corefile:/Corefile:ro
+      - ./local/coredns:/local:ro
     networks:
       dns:
         ipv4_address: 172.31.0.10
