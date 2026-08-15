@@ -60,12 +60,20 @@ tar -C data -czf "$backup_file" keycloak
 
 ### Reset
 
-realmやuserを引き継ぐ必要がない場合は、backup取得後にruntime dataを削除してfresh databaseを作成します。
+realmやuserを引き継ぐ必要がない場合は、backup取得後にGitでignoreされているruntime dataだけを削除してfresh databaseを作成します。
 
-> 次のコマンドは `data/keycloak` のruntime dataを削除します。backupを確認してから実行してください。
+まず削除対象を確認します。
 
 ```bash
-find data/keycloak -mindepth 1 -maxdepth 1 ! -name .gitkeep -exec rm -rf -- {} +
+git clean -ndX -- data/keycloak
+```
+
+内容を確認した後に実行します。
+
+> 次のコマンドは `data/keycloak` のignored runtime dataを削除します。backupを確認してから実行してください。
+
+```bash
+git clean -fdX -- data/keycloak
 docker compose up -d
 ```
 
@@ -90,10 +98,16 @@ docker run --rm \
 
 export完了後、codeを更新し、`.env` の管理者変数を `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` へ変更します。続いて既存H2をresetし、exportしたrealm dataを新versionへimportします。
 
-> 次の `find` は `data/keycloak` のruntime dataを削除します。backupとexport結果を確認してから実行してください。
+削除前に対象を確認します。
 
 ```bash
-find data/keycloak -mindepth 1 -maxdepth 1 ! -name .gitkeep -exec rm -rf -- {} +
+git clean -ndX -- data/keycloak
+```
+
+> 次のコマンドは `data/keycloak` のignored runtime dataを削除します。backupとexport結果を確認してから実行してください。
+
+```bash
+git clean -fdX -- data/keycloak
 
 docker compose run --rm --no-deps \
   -v "$export_dir:/tmp/export:ro" \
