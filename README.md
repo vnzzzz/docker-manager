@@ -58,6 +58,20 @@
    docker compose up -d
    ```
 
+## 既存環境からの移行
+
+旧構成で `data/coredns/Corefile` をローカルだけで管理している場合は、利用プロジェクト固有の `rewrite` だけを `local/coredns/projects.conf` へ移す。
+
+例えば旧 Corefile に次の設定がある場合、
+
+```corefile
+rewrite name example.localhost host.docker.internal
+```
+
+新しい `local/coredns/projects.conf` に同じ行を記載する。`keycloak.localhost` の rewrite や `hosts` / `forward` / `cache` などの共通設定は `config/coredns/Corefile` 側で管理するため、local 設定へコピーしない。
+
+移行後に名前解決を確認してから、不要になった旧 `data/coredns/Corefile` / `data/coredns` と `data/traefik` をローカルから削除できる。
+
 ## 管理コンソール
 
 ### Traefik
