@@ -1,0 +1,17 @@
+.:53 {
+  log
+  errors
+
+  rewrite name keycloak.localhost host.docker.internal
+
+  # Project-specific rewrites live in local/coredns/*.conf.
+  # An empty glob is valid, so no local override is required.
+  import local/*.conf
+
+  hosts /etc/hosts {
+    fallthrough
+  }
+
+  forward . 127.0.0.11
+  cache 30
+}
