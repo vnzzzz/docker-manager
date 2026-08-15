@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    name: Compose validation and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ci-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ci-password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare environment
+        run: cp .env.sample .env
+
+      - name: Validate required files
+        run: |
+          test -f config/traefik/traefik.yml
+          test -f config/coredns/Corefile
+          test -f local/coredns/projects.conf.example
+
+      - name: Validate Compose model
+        run: docker compose config -q
+
+      - name: Prepare runtime directories
+        run: sudo chown -R 1000:0 data/keycloak
+
+      - name: Install DNS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends dnsutils
+
+      - name: Start stack
+        run: docker compose up -d --wait --wait-timeout 180
+
+      - name: Verify Traefik
+        run: test "$(docker inspect -f '{{.State.Running}}' traefik)" = "true"
+
+      - name: Verify Portainer through Traefik
+        run: |
+          curl --fail --silent --show-error \
+            --retry 30 \
+            --retry-delay 2 \
+            --retry-connrefused \
+            -H 'Host: portainer.localhost' \
+            http://127.0.0.1/ \
+            -o /dev/null
+
+      - name: Verify Keycloak health
+        run: test "$(docker inspect -f '{{.State.Health.Status}}' keycloak)" = "healthy"
+
+      - name: Verify CoreDNS
+        run: |
+          result="$(dig +short @172.31.0.10 keycloak.localhost A | tail -n 1)"
+          test "$result" = "172.31.0.11"
+
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          docker compose ps -a || true
+          docker compose logs --no-color --timestamps || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans || true

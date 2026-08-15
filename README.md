@@ -56,10 +56,26 @@ rewrite name example.localhost host.docker.internal
 `docker-compose.yml` では image を patch version まで固定します。Portainer は LTS stream を使用します。
 major / minor version を更新する場合は、各製品の release notes / migration guide を確認してから更新します。
 
+## CI
+
+Pull Requestと`main`へのpushでは `.github/workflows/ci.yml` を実行します。
+
+- `docker compose config -q` によるCompose model検証
+- Traefik / CoreDNSの必須設定ファイル確認
+- stackの起動とTraefik containerのrunning確認
+- Traefik経由のPortainer HTTP応答確認
+- Keycloak health check確認
+- CoreDNSへのDNS query確認
+
+失敗時は `docker compose ps` と各serviceのlogsを出力してからcleanupします。
+
 ## Layout
 
 ```text
 .
+├── .github
+│   └── workflows
+│       └── ci.yml
 ├── config
 │   ├── coredns
 │   │   └── Corefile
