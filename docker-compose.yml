@@ -5,11 +5,14 @@ services:
     restart: always
     image: traefik:latest
     ports:
-      - "80:80"
-      # TLS を使う場合は 443 も開ける
-      # - "443:443"
+      - "127.0.0.1:80:80"
+      - "[::1]:80:80"
+      # TLS を使う場合は 443 も loopback のみに公開する
+      # - "127.0.0.1:443:443"
+      # - "[::1]:443:443"
       # ダッシュボードは traefik.localhost 経由で出すので 8080 は基本不要
-      # - "8080:8080"
+      # - "127.0.0.1:8080:8080"
+      # - "[::1]:8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
