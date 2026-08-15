@@ -25,7 +25,7 @@ docker compose up -d
 
 Admin Consoleは `http://keycloak.localhost` から利用します。
 
-`KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` は初期管理者の作成に使用します。既に管理者が存在する環境で値を変更しても、既存管理者の認証情報を更新する用途にはなりません。
+`KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` は初期管理者の作成に使用します。既にmaster realmが存在する環境ではbootstrap admin設定は無視されます。
 
 ## Health check
 
@@ -110,24 +110,26 @@ git clean -ndX -- data/keycloak
 git clean -fdX -- data/keycloak
 ```
 
-importするrealmには `master` realmと既存管理者が含まれます。通常起動用の `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` をimport containerへ渡すと、import後に同名のtemporary bootstrap adminを作成しようとして競合するため、`docker compose run -e` でimport container内だけ空値へ上書きします。`.env` の値自体は通常起動用として保持します。
+importするrealmには `master` realmと既存管理者が含まれます。Compose serviceには通常起動用のbootstrap admin環境変数が設定されているため、importではCompose serviceを使わず、Keycloak imageを直接起動します。これにより `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` をimport processへ渡しません。
 
 ```bash
-docker compose run --rm --no-deps \
-  -e KC_BOOTSTRAP_ADMIN_USERNAME= \
-  -e KC_BOOTSTRAP_ADMIN_PASSWORD= \
-  -v "$export_dir:/tmp/export:ro" \
-  keycloak \
+docker run --rm \
+  --mount type=bind,src="$PWD/data/keycloak",dst=/opt/keycloak/data \
+  --mount type=bind,src="$export_dir",dst=/tmp/export,readonly \
+  quay.io/keycloak/keycloak:26.7.1 \
   import --db=dev-file --dir /tmp/export
 ```
 
-`KC-SERVICES0032: Import finished successfully` の後にbootstrap admin作成エラーで終了した場合、import処理は進んでいる可能性があります。状態を曖昧にしたまま再実行せず、backupとexport結果を確認したうえでH2 runtime dataを再度resetしてから、上記のbootstrap admin変数を空にしたコマンドでimportをやり直します。
-
-importが正常終了したら起動します。
+`KC-SERVICES0032: Import finished successfully` の後にtemporary bootstrap admin作成エラーで終了した場合は、realm import自体が完了している可能性があります。まず通常起動して状態を確認します。
 
 ```bash
 docker compose up -d
+docker compose ps keycloak
 ```
+
+Keycloakが`healthy`になり、Admin Consoleで既存管理者によるログインと必要なrealmを確認できれば再importは不要です。master realmが既に存在する場合、bootstrap admin設定は通常起動では無視されます。
+
+通常起動できない、またはimportしたrealmが不足している場合だけ、backupとexport結果を確認したうえでH2 runtime dataをresetし、上記の`docker run`によるimportをやり直します。
 
 起動後にAdmin Consoleへログインし、必要なrealm、client、userが引き継がれていることを確認します。
 
@@ -135,11 +137,11 @@ docker compose up -d
 
 - Keycloak: Running Keycloak in a container
   - https://www.keycloak.org/server/containers
+- Keycloak: Bootstrapping and recovering an admin account
+  - https://www.keycloak.org/server/bootstrap-admin-recovery
 - Keycloak: Tracking instance status with health checks
   - https://www.keycloak.org/observability/health
 - Keycloak: Upgrading Guide
   - https://www.keycloak.org/docs/latest/upgrading/
 - Keycloak: Importing and exporting realms
   - https://www.keycloak.org/server/importExport
-- Docker Compose: Set environment variables within your container's environment
-  - https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/
