@@ -14,6 +14,8 @@ services:
       # - "127.0.0.1:8080:8080"
       # - "[::1]:8080:8080"
     volumes:
+      # local-only用途としてdirect socketを許容する。:roはDocker API権限制御ではない。
+      # trust boundaryとsocket proxy不採用理由は docs/security.md を参照。
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
@@ -33,6 +35,8 @@ services:
     restart: always
     image: portainer/portainer-ce:2.39.6
     volumes:
+      # Docker管理planeとしてhigh-trustなdirect socket accessを必要とする。
+      # 外部公開しない前提とsecurity controlsは docs/security.md を参照。
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data/portainer:/data
     networks:
