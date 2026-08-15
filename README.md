@@ -56,6 +56,17 @@ rewrite name example.localhost host.docker.internal
 `docker-compose.yml` では image を patch version まで固定します。Portainer は LTS stream を使用します。
 major / minor version を更新する場合は、各製品の release notes / migration guide を確認してから更新します。
 
+## Dependency updates
+
+Dependabotは毎週月曜日09:00（Asia/Tokyo）にDocker Compose imageとGitHub Actionsの更新を確認します。
+
+- Docker Compose imageのpatch updateは1つのPRにまとめる
+- Docker Compose imageのminor / major updateは個別PRとし、release notes / migration guideとCIを確認してからmergeする
+- Portainerは現在のLTS minor系列内のpatch updateだけを自動提案対象とし、新しいLTS系列への移行はlifecycleを確認して手動で行う
+- GitHub Actionsのpatch / minor updateはまとめ、major updateは個別PRにする
+
+Dependabot PRも通常のPull Requestと同じCIを実行し、自動mergeは行いません。
+
 ## CI
 
 Pull Requestと`main`へのpushでは `.github/workflows/ci.yml` を実行します。
@@ -74,6 +85,7 @@ Pull Requestと`main`へのpushでは `.github/workflows/ci.yml` を実行しま
 ```text
 .
 ├── .github
+│   ├── dependabot.yml
 │   └── workflows
 │       └── ci.yml
 ├── config
