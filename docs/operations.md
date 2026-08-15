@@ -60,10 +60,10 @@ docker compose down
 
 ## Backup
 
-KeycloakとPortainerの永続データを整合した状態で取得するため、backup前はstackを停止します。
+KeycloakとPortainerの永続データを整合した状態で取得するため、backup対象serviceを停止します。shared networkは残します。
 
 ```bash
-docker compose down
+docker compose stop keycloak portainer
 
 backup_dir="../docker-manager-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup_dir"
@@ -71,10 +71,10 @@ mkdir -p "$backup_dir"
 tar -C data -czf "$backup_dir/runtime-data.tar.gz" keycloak portainer
 ```
 
-backup後に再起動します。
+backup後に対象serviceを再開します。
 
 ```bash
-docker compose up -d
+docker compose start keycloak portainer
 ```
 
 Git管理されている `docker-compose.yml` / `config/` は通常のrepository履歴から復元します。`.env` はsecretを含むためGitへcommitしません。別途backupする場合もaccess権限を限定します。
@@ -85,9 +85,10 @@ Keycloakのmajor / minor upgradeでは、単純なdirectory backupだけでな�
 
 ### Keycloak
 
-削除対象をdry-runで確認します。
+Keycloakを停止してから削除対象をdry-runで確認します。
 
 ```bash
+docker compose stop keycloak
 git clean -ndX -- data/keycloak
 ```
 
@@ -95,15 +96,17 @@ backupを確認してから実行します。
 
 ```bash
 git clean -fdX -- data/keycloak
+docker compose start keycloak
 ```
 
 realm / userを保持するversion upgradeではこの手順だけを使わず、[keycloak.md](keycloak.md) のexport/import手順に従います。
 
 ### Portainer
 
-Portainerの設定、local environment登録、user等を初期化する場合だけresetします。
+Portainerの設定、local environment登録、user等を初期化する場合だけresetします。Portainerを停止してから対象を確認します。
 
 ```bash
+docker compose stop portainer
 git clean -ndX -- data/portainer
 ```
 
@@ -111,6 +114,7 @@ git clean -ndX -- data/portainer
 
 ```bash
 git clean -fdX -- data/portainer
+docker compose start portainer
 ```
 
 次回起動時はfreshなPortainer data directoryとして初期設定が必要です。
