@@ -20,6 +20,20 @@ docker compose up -d
 - Portainer: `http://portainer.localhost`
 - Keycloak: `http://keycloak.localhost`
 
+## Screenshots
+
+### Traefik
+
+![Traefik dashboard](images/traefik-console.png)
+
+### Portainer
+
+![Portainer dashboard](images/portainer-console.png)
+
+Containers から起動中のコンテナを確認できます。
+
+![Portainer containers](images/portainer-container.png)
+
 ## Local DNS
 
 利用プロジェクト固有の名前解決が必要な場合は、local overrideを作成します。
