@@ -49,6 +49,11 @@ rewrite name example.localhost host.docker.internal
 
 `local/coredns/*.conf` はGit管理されません。共通設定は `config/coredns/Corefile` を正本とします。
 
+## Image versions
+
+`docker-compose.yml` では image を patch version まで固定します。Portainer は LTS stream を使用します。
+major / minor version を更新する場合は、各製品の release notes / migration guide を確認してから更新します。
+
 ## Layout
 
 ```text
