@@ -1,18 +1,13 @@
 # env
 .env
 
-# portainer data
+# persistent data
 data/portainer/**
-
-# coredns data
-data/coredns/**
-
-# keycloak data
 data/keycloak/**
 
-# traefik config/data
-data/traefik/**
-!data/traefik/traefik.yml
+# keep data directories in Git
+!data/portainer/.gitkeep
+!data/keycloak/.gitkeep
 
-# gitkeep
-!.gitkeep
+# local CoreDNS overrides
+local/coredns/*.conf
