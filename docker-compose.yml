@@ -17,7 +17,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
-      - web
+      web:
+      dns:
+        ipv4_address: 172.31.0.11
     labels:
       - "traefik.enable=true"
       # Traefik dashboard を http://traefik.localhost で公開
@@ -48,7 +50,8 @@ services:
     restart: unless-stopped
     command: -conf /Corefile
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # CoreDNS の既存 rewrite target を Traefik の dns network 側IPへ向ける
+      - "host.docker.internal:172.31.0.11"
     volumes:
       - ./config/coredns/Corefile:/Corefile:ro
       - ./local/coredns:/local:ro
