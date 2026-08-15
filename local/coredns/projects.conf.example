@@ -1,0 +1,4 @@
+# Copy this file to projects.conf and add project-specific rewrites.
+# *.conf files in this directory are ignored by Git.
+
+rewrite name example.localhost host.docker.internal
