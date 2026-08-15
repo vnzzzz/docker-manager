@@ -25,7 +25,7 @@ docker compose up -d
 
 Admin Consoleは `http://keycloak.localhost` から利用します。
 
-`KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` は初期管理者の作成に使用します。既に管理者が存在する環境で値を変更しても、既存管理者の認証情報を更新する用途にはなりません。
+`KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` は初期管理者の作成に使用します。既にmaster realmが存在する環境ではbootstrap admin設定は無視されます。
 
 ## Health check
 
@@ -81,7 +81,7 @@ docker compose up -d
 
 H2 database自体は移行せず、旧versionでrealm dataをexportし、新versionの空databaseへimportします。export/importには制約があり、session、event、workflow state、revoked tokenなどは引き継がれません。
 
-24.0.5から26.xへ移行する場合は、codeを更新する前に旧versionでexportします。
+24.0.5から26.xへ移行する場合は、codeを更新する前に旧versionでexportします。export時はKeycloak serverを停止します。
 
 ```bash
 docker compose down
@@ -108,14 +108,28 @@ git clean -ndX -- data/keycloak
 
 ```bash
 git clean -fdX -- data/keycloak
-
-docker compose run --rm --no-deps \
-  -v "$export_dir:/tmp/export:ro" \
-  keycloak \
-  import --db=dev-file --dir /tmp/export
-
-docker compose up -d
 ```
+
+importするrealmには `master` realmと既存管理者が含まれます。Compose serviceには通常起動用のbootstrap admin環境変数が設定されているため、importではCompose serviceを使わず、Keycloak imageを直接起動します。これにより `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` をimport processへ渡しません。
+
+```bash
+docker run --rm \
+  --mount type=bind,src="$PWD/data/keycloak",dst=/opt/keycloak/data \
+  --mount type=bind,src="$export_dir",dst=/tmp/export,readonly \
+  quay.io/keycloak/keycloak:26.7.1 \
+  import --db=dev-file --dir /tmp/export
+```
+
+`KC-SERVICES0032: Import finished successfully` の後にtemporary bootstrap admin作成エラーで終了した場合は、realm import自体が完了している可能性があります。まず通常起動して状態を確認します。
+
+```bash
+docker compose up -d
+docker compose ps keycloak
+```
+
+Keycloakが`healthy`になり、Admin Consoleで既存管理者によるログインと必要なrealmを確認できれば再importは不要です。master realmが既に存在する場合、bootstrap admin設定は通常起動では無視されます。
+
+通常起動できない、またはimportしたrealmが不足している場合だけ、backupとexport結果を確認したうえでH2 runtime dataをresetし、上記の`docker run`によるimportをやり直します。
 
 起動後にAdmin Consoleへログインし、必要なrealm、client、userが引き継がれていることを確認します。
 
@@ -123,6 +137,8 @@ docker compose up -d
 
 - Keycloak: Running Keycloak in a container
   - https://www.keycloak.org/server/containers
+- Keycloak: Bootstrapping and recovering an admin account
+  - https://www.keycloak.org/server/bootstrap-admin-recovery
 - Keycloak: Tracking instance status with health checks
   - https://www.keycloak.org/observability/health
 - Keycloak: Upgrading Guide
