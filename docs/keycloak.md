@@ -81,7 +81,7 @@ docker compose up -d
 
 H2 database自体は移行せず、旧versionでrealm dataをexportし、新versionの空databaseへimportします。export/importには制約があり、session、event、workflow state、revoked tokenなどは引き継がれません。
 
-24.0.5から26.xへ移行する場合は、codeを更新する前に旧versionでexportします。
+24.0.5から26.xへ移行する場合は、codeを更新する前に旧versionでexportします。export時はKeycloak serverを停止します。
 
 ```bash
 docker compose down
@@ -108,12 +108,24 @@ git clean -ndX -- data/keycloak
 
 ```bash
 git clean -fdX -- data/keycloak
+```
 
+importするrealmには `master` realmと既存管理者が含まれます。通常起動用の `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` をimport containerへ渡すと、import後に同名のtemporary bootstrap adminを作成しようとして競合するため、`docker compose run -e` でimport container内だけ空値へ上書きします。`.env` の値自体は通常起動用として保持します。
+
+```bash
 docker compose run --rm --no-deps \
+  -e KC_BOOTSTRAP_ADMIN_USERNAME= \
+  -e KC_BOOTSTRAP_ADMIN_PASSWORD= \
   -v "$export_dir:/tmp/export:ro" \
   keycloak \
   import --db=dev-file --dir /tmp/export
+```
 
+`KC-SERVICES0032: Import finished successfully` の後にbootstrap admin作成エラーで終了した場合、import処理は進んでいる可能性があります。状態を曖昧にしたまま再実行せず、backupとexport結果を確認したうえでH2 runtime dataを再度resetしてから、上記のbootstrap admin変数を空にしたコマンドでimportをやり直します。
+
+importが正常終了したら起動します。
+
+```bash
 docker compose up -d
 ```
 
@@ -129,3 +141,5 @@ docker compose up -d
   - https://www.keycloak.org/docs/latest/upgrading/
 - Keycloak: Importing and exporting realms
   - https://www.keycloak.org/server/importExport
+- Docker Compose: Set environment variables within your container's environment
+  - https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/
