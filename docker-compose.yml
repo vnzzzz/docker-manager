@@ -60,7 +60,7 @@ services:
         ipv4_address: 172.31.0.10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:24.0.5
     container_name: keycloak
     restart: unless-stopped
     command:
