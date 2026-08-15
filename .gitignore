@@ -5,6 +5,9 @@
 data/portainer/**
 data/keycloak/**
 
+# legacy local CoreDNS config
+data/coredns/**
+
 # keep data directories in Git
 !data/portainer/.gitkeep
 !data/keycloak/.gitkeep
