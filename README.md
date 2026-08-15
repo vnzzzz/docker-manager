@@ -3,6 +3,7 @@
 Local Docker development infrastructure with Traefik, Portainer, CoreDNS and Keycloak.
 
 ローカルのDocker開発環境で共通利用するインフラを管理します。
+ローカル開発専用とし、Traefik / Portainer / Keycloak の管理UIを外部公開用途では使用しません。
 
 ## Setup
 

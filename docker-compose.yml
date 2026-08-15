@@ -5,16 +5,21 @@ services:
     restart: always
     image: traefik:latest
     ports:
-      - "80:80"
-      # TLS を使う場合は 443 も開ける
-      # - "443:443"
+      - "127.0.0.1:80:80"
+      - "[::1]:80:80"
+      # TLS を使う場合は 443 も loopback のみに公開する
+      # - "127.0.0.1:443:443"
+      # - "[::1]:443:443"
       # ダッシュボードは traefik.localhost 経由で出すので 8080 は基本不要
-      # - "8080:8080"
+      # - "127.0.0.1:8080:8080"
+      # - "[::1]:8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
-      - web
+      web:
+      dns:
+        ipv4_address: 172.31.0.11
     labels:
       - "traefik.enable=true"
       # Traefik dashboard を http://traefik.localhost で公開
@@ -45,7 +50,8 @@ services:
     restart: unless-stopped
     command: -conf /Corefile
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # CoreDNS の既存 rewrite target を Traefik の dns network 側IPへ向ける
+      - "host.docker.internal:172.31.0.11"
     volumes:
       - ./config/coredns/Corefile:/Corefile:ro
       - ./local/coredns:/local:ro
