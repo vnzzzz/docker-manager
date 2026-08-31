@@ -3,7 +3,7 @@ services:
     container_name: traefik
     hostname: traefik
     restart: always
-    image: traefik:v3.7.10
+    image: traefik:v3.7.12
     ports:
       - "127.0.0.1:80:80"
       - "[::1]:80:80"
@@ -33,7 +33,7 @@ services:
     container_name: portainer
     hostname: portainer
     restart: always
-    image: portainer/portainer-ce:2.39.6
+    image: portainer/portainer-ce:2.39.7
     volumes:
       # Docker管理planeとしてhigh-trustなdirect socket accessを必要とする。
       # 外部公開しない前提とsecurity controlsは docs/security.md を参照。
@@ -49,7 +49,7 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
   coredns:
-    image: coredns/coredns:1.14.6
+    image: coredns/coredns:1.14.7
     container_name: coredns
     restart: unless-stopped
     command: -conf /Corefile
@@ -64,7 +64,7 @@ services:
         ipv4_address: 172.31.0.10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.1
+    image: quay.io/keycloak/keycloak:26.7.2-2
     container_name: keycloak
     restart: unless-stopped
     command:
