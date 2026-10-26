@@ -3,7 +3,7 @@ services:
     container_name: traefik
     hostname: traefik
     restart: always
-    image: traefik:v3.7.10
+    image: traefik:v3.7.16
     ports:
       - "127.0.0.1:80:80"
       - "[::1]:80:80"
@@ -33,7 +33,7 @@ services:
     container_name: portainer
     hostname: portainer
     restart: always
-    image: portainer/portainer-ce:2.39.6
+    image: portainer/portainer-ce:2.39.8
     volumes:
       # Docker管理planeとしてhigh-trustなdirect socket accessを必要とする。
       # 外部公開しない前提とsecurity controlsは docs/security.md を参照。
